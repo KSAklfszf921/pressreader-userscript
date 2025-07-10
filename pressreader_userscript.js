@@ -1,6 +1,5 @@
 // ==UserScript==
 // @name            Swedish News Article Unlocker
-// @namespace       https://github.com/quoid/userscripts
 // @version         3.0.0
 // @description     Production-ready paywall detection with real PressReader API integration and intelligent fallback
 // @author          Isak Skogstad
