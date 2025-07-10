@@ -1,0 +1,24 @@
+{
+  "api_key": "DIN_PRESSREADER_API_NYCKEL",
+  "max_search_results": 20,
+  "search_timeout": 30,
+  "cache_timeout": 3600,
+  "default_countries": [
+    "SE",
+    "NO",
+    "DK",
+    "FI"
+  ],
+  "default_languages": [
+    "sv",
+    "en",
+    "no",
+    "da"
+  ],
+  "match_threshold": 0.75,
+  "concurrent_searches": 5,
+  "rate_limit_per_hour": 1000,
+  "user_session_timeout": 1800,
+  "enable_logging": true,
+  "enable_caching": true
+}
