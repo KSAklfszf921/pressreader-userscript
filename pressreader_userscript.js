@@ -68,9 +68,33 @@
             let paywallDetected = false;
             
             if (this.currentSite === 'svd') {
-                // SVD: Kontrollera för data-paywall attribut
-                const svdPaywall = document.querySelector('[data-paywall]');
-                if (svdPaywall) paywallDetected = true;
+                // SVD: Kontrollera för multiple paywall-indikatorer
+                const svdPaywallSelectors = [
+                    '[data-paywall]',
+                    '[property="lp:paywall"]',
+                    '[property="lp:type"][content*="premium"]',
+                    '[property="lp:paywall"][content="hard"]',
+                    '.paywall',
+                    '[class*="paywall"]'
+                ];
+                
+                // Kontrollera meta-tags för paywall
+                const paywallMeta = document.querySelector('meta[property="lp:paywall"][content="hard"]');
+                const premiumMeta = document.querySelector('meta[property="lp:type"][content*="premium"]');
+                
+                // Kontrollera DOM-element
+                const hasPaywallElements = svdPaywallSelectors.some(selector => 
+                    document.querySelector(selector)
+                );
+                
+                if (paywallMeta || premiumMeta || hasPaywallElements) {
+                    paywallDetected = true;
+                    console.log('[SVD Paywall] Detekterat:', { 
+                        paywallMeta: !!paywallMeta, 
+                        premiumMeta: !!premiumMeta, 
+                        hasPaywallElements 
+                    });
+                }
             } 
             else if (this.currentSite === 'kungalvsposten') {
                 // Kungälvsposten: Kontrollera för paywall i texten och vanliga paywall-element
