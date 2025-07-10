@@ -68,32 +68,87 @@
             let paywallDetected = false;
             
             if (this.currentSite === 'svd') {
-                // SVD: Kontrollera för multiple paywall-indikatorer
+                // SVD: Extensive paywall detection
+                console.log('[SVD Debug] Startar paywall-detektion...');
+                
+                // 1. Meta-tags för paywall
+                const paywallMeta = document.querySelector('meta[property="lp:paywall"]');
+                const premiumMeta = document.querySelector('meta[property="lp:type"]');
+                const paywallUserMeta = document.querySelector('meta[property="lp:paywall_user"]');
+                
+                // 2. DOM-element selektorer
                 const svdPaywallSelectors = [
                     '[data-paywall]',
-                    '[property="lp:paywall"]',
-                    '[property="lp:type"][content*="premium"]',
-                    '[property="lp:paywall"][content="hard"]',
                     '.paywall',
-                    '[class*="paywall"]'
+                    '[class*="paywall"]',
+                    '[class*="premium"]',
+                    '[class*="subscriber"]',
+                    '[class*="locked"]'
                 ];
                 
-                // Kontrollera meta-tags för paywall
-                const paywallMeta = document.querySelector('meta[property="lp:paywall"][content="hard"]');
-                const premiumMeta = document.querySelector('meta[property="lp:type"][content*="premium"]');
-                
-                // Kontrollera DOM-element
                 const hasPaywallElements = svdPaywallSelectors.some(selector => 
                     document.querySelector(selector)
                 );
                 
-                if (paywallMeta || premiumMeta || hasPaywallElements) {
+                // 3. Textbaserad detektion
+                const pageText = document.body.innerText.toLowerCase();
+                const paywallTexts = [
+                    'för att läsa hela artikeln',
+                    'logga in för att läsa',
+                    'prenumerera för att läsa',
+                    'bli prenumerant',
+                    'premium-artikel',
+                    'plus-artikel'
+                ];
+                
+                const hasPaywallText = paywallTexts.some(text => pageText.includes(text));
+                
+                // 4. URL-baserad detektion (SVD använder /a/ för artiklar)
+                const isPremiumUrl = window.location.pathname.includes('/a/');
+                
+                // 5. Schema.org markup för betalinnehåll
+                const schemaPaywall = document.querySelector('[typeof*="paywall"], [typeof*="premium"]');
+                
+                const detectionResults = {
+                    paywallMeta: !!paywallMeta,
+                    paywallMetaContent: paywallMeta?.content,
+                    premiumMeta: !!premiumMeta,
+                    premiumMetaContent: premiumMeta?.content,
+                    paywallUserMeta: !!paywallUserMeta,
+                    paywallUserContent: paywallUserMeta?.content,
+                    hasPaywallElements,
+                    hasPaywallText,
+                    isPremiumUrl,
+                    schemaPaywall: !!schemaPaywall
+                };
+                
+                // Detektera paywall om något av följande är sant:
+                if (paywallMeta || premiumMeta || hasPaywallElements || hasPaywallText || schemaPaywall) {
                     paywallDetected = true;
-                    console.log('[SVD Paywall] Detekterat:', { 
-                        paywallMeta: !!paywallMeta, 
-                        premiumMeta: !!premiumMeta, 
-                        hasPaywallElements 
-                    });
+                }
+                
+                console.log('[SVD Paywall] Detektionsresultat:', detectionResults);
+                console.log('[SVD Paywall] Paywall detekterad:', paywallDetected);
+                
+                // Vänta några sekunder innan vi visar knappen för att låta paywall ladda
+                if (paywallDetected) {
+                    setTimeout(() => {
+                        // Dubbelkolla om paywall fortfarande finns efter laddning
+                        const recheckPaywall = document.querySelector('meta[property="lp:paywall"]') || 
+                                             document.querySelector('meta[property="lp:type"]') ||
+                                             paywallTexts.some(text => document.body.innerText.toLowerCase().includes(text)) ||
+                                             hasPaywallElements;
+                        
+                        if (recheckPaywall) {
+                            console.log('[SVD Debug] Paywall bekräftad efter 3s delay');
+                            this.showUnlockButton();
+                        } else {
+                            console.log('[SVD Debug] Paywall försvann efter laddning - användare inloggad?');
+                        }
+                    }, 3000);
+                    
+                    // Förhindra omedelbar visning
+                    return;
                 }
             } 
             else if (this.currentSite === 'kungalvsposten') {
@@ -123,7 +178,61 @@
             }
             
             if (paywallDetected) {
-                this.showUnlockButton();
+                setTimeout(() => {
+                    // Dubbelkolla paywall efter delay
+                    this.recheckAndShowButton();
+                }, 3000);
+            }
+        }
+
+        recheckAndShowButton() {
+            if (this.currentSite === 'svd') {
+                // Dubbelkolla om paywall fortfarande finns
+                const paywallMeta = document.querySelector('meta[property="lp:paywall"]');
+                const premiumMeta = document.querySelector('meta[property="lp:type"]');
+                
+                const paywallTexts = [
+                    'för att läsa hela artikeln',
+                    'logga in för att läsa',
+                    'prenumerera för att läsa',
+                    'bli prenumerant',
+                    'premium-artikel',
+                    'plus-artikel'
+                ];
+                
+                const hasPaywallText = paywallTexts.some(text => 
+                    document.body.innerText.toLowerCase().includes(text)
+                );
+                
+                const svdPaywallSelectors = [
+                    '[data-paywall]',
+                    '.paywall',
+                    '[class*="paywall"]',
+                    '[class*="premium"]',
+                    '[class*="subscriber"]',
+                    '[class*="locked"]'
+                ];
+                
+                const hasPaywallElements = svdPaywallSelectors.some(selector => 
+                    document.querySelector(selector)
+                );
+                
+                if (paywallMeta || premiumMeta || hasPaywallText || hasPaywallElements) {
+                    console.log('[SVD Debug] Paywall bekräftad - visar knapp');
+                    this.showUnlockButton();
+                } else {
+                    console.log('[SVD Debug] Ingen paywall - användare inloggad eller gratis artikel');
+                }
+            } else if (this.currentSite === 'kungalvsposten') {
+                // Rechec för Kungälvsposten
+                const pageText = document.body.innerText.toLowerCase();
+                const hasPaywallText = pageText.includes('paywall') || 
+                                     pageText.includes('prenumeration') || 
+                                     pageText.includes('logga in');
+                
+                if (hasPaywallText) {
+                    this.showUnlockButton();
+                }
             }
         }
 
@@ -345,8 +454,67 @@
 
         generateSearchStrategies(articleData) {
             const strategies = [];
+            const publicationName = this.getPublicationName();
             
-            // Strategi 1: Exakt titel (högsta prioritet)
+            // Strategi 1: Titel + Publikation + Datum (Print version mapping)
+            if (articleData.title && publicationName && articleData.publishDate) {
+                const date = this.normalizeDate(articleData.publishDate);
+                strategies.push({
+                    name: 'Titel + Publikation + Datum',
+                    query: `"${articleData.title}" AND "${publicationName}" AND "${date}"`,
+                    searchData: {
+                        ...articleData,
+                        publication: publicationName,
+                        search_query: `"${articleData.title}" AND "${publicationName}" AND "${date}"`
+                    }
+                });
+            }
+            
+            // Strategi 2: Titel + Publikation (utan exakt datum)
+            if (articleData.title && publicationName) {
+                strategies.push({
+                    name: 'Titel + Publikation',
+                    query: `"${articleData.title}" AND "${publicationName}"`,
+                    searchData: {
+                        ...articleData,
+                        publication: publicationName,
+                        search_query: `"${articleData.title}" AND "${publicationName}"`
+                    }
+                });
+            }
+            
+            // Strategi 3: Nyckelord + Publikation (för tryckt vs digital mapping)
+            if (articleData.title && publicationName) {
+                const keywords = this.extractKeywords(articleData.title);
+                if (keywords.length >= 2) {
+                    const keywordQuery = keywords.slice(0, 3).join(' AND ');
+                    strategies.push({
+                        name: 'Nyckelord + Publikation',
+                        query: `(${keywordQuery}) AND "${publicationName}"`,
+                        searchData: {
+                            ...articleData,
+                            publication: publicationName,
+                            search_query: `(${keywordQuery}) AND "${publicationName}"`
+                        }
+                    });
+                }
+            }
+            
+            // Strategi 4: Författare + Publikation + Datum
+            if (articleData.author && publicationName && articleData.publishDate) {
+                const date = this.normalizeDate(articleData.publishDate);
+                strategies.push({
+                    name: 'Författare + Publikation + Datum',
+                    query: `"${articleData.author}" AND "${publicationName}" AND "${date}"`,
+                    searchData: {
+                        ...articleData,
+                        publication: publicationName,
+                        search_query: `"${articleData.author}" AND "${publicationName}" AND "${date}"`
+                    }
+                });
+            }
+            
+            // Strategi 5: Exakt titel (fallback)
             if (articleData.title) {
                 strategies.push({
                     name: 'Exakt titel',
@@ -358,51 +526,24 @@
                 });
             }
             
-            // Strategi 2: Titel + Författare (om båda finns)
-            if (articleData.title && articleData.author) {
-                strategies.push({
-                    name: 'Titel + Författare',
-                    query: `"${articleData.title}" AND "${articleData.author}"`,
-                    searchData: {
-                        ...articleData,
-                        search_query: `"${articleData.title}" AND "${articleData.author}"`
-                    }
-                });
-            }
-            
-            // Strategi 3: Nyckelord från titel (Boolean)
-            if (articleData.title) {
-                const keywords = this.extractKeywords(articleData.title);
-                if (keywords.length >= 2) {
-                    const booleanQuery = keywords.join(' AND ');
-                    strategies.push({
-                        name: 'Nyckelord från titel',
-                        query: booleanQuery,
-                        searchData: {
-                            ...articleData,
-                            search_query: booleanQuery
-                        }
-                    });
-                }
-            }
-            
-            // Strategi 4: Wildcard-sökning på huvudord
-            if (articleData.title) {
+            // Strategi 6: Wildcard + Publikation
+            if (articleData.title && publicationName) {
                 const mainWords = this.extractKeywords(articleData.title).slice(0, 3);
-                const wildcardQuery = mainWords.map(word => `${word}*`).join(' AND ');
                 if (mainWords.length > 0) {
+                    const wildcardQuery = mainWords.map(word => `${word}*`).join(' AND ');
                     strategies.push({
-                        name: 'Wildcard-sökning',
-                        query: wildcardQuery,
+                        name: 'Wildcard + Publikation',
+                        query: `(${wildcardQuery}) AND "${publicationName}"`,
                         searchData: {
                             ...articleData,
-                            search_query: wildcardQuery
+                            publication: publicationName,
+                            search_query: `(${wildcardQuery}) AND "${publicationName}"`
                         }
                     });
                 }
             }
             
-            // Strategi 5: URL-baserad sökning (fallback)
+            // Strategi 7: URL-baserad sökning (sista utväg)
             strategies.push({
                 name: 'URL-baserad',
                 query: 'url_search',
@@ -412,6 +553,64 @@
             });
             
             return strategies;
+        }
+
+        getPublicationName() {
+            const siteToPublication = {
+                'svd': 'Svenska Dagbladet',
+                'kungalvsposten': 'Kungälvs-Posten'
+            };
+            return siteToPublication[this.currentSite] || '';
+        }
+
+        normalizeDate(dateString) {
+            // Försök att konvertera olika datumformat till PressReader-format
+            try {
+                const date = new Date(dateString);
+                if (isNaN(date.getTime())) {
+                    // Försök att extrahera datum från text
+                    const swedishMonths = {
+                        'januari': '01', 'februari': '02', 'mars': '03', 'april': '04',
+                        'maj': '05', 'juni': '06', 'juli': '07', 'augusti': '08',
+                        'september': '09', 'oktober': '10', 'november': '11', 'december': '12',
+                        'jan': '01', 'feb': '02', 'mar': '03', 'apr': '04',
+                        'jun': '06', 'jul': '07', 'aug': '08', 'sep': '09',
+                        'okt': '10', 'nov': '11', 'dec': '12'
+                    };
+                    
+                    // Sök efter svenska datumformat
+                    for (const [month, num] of Object.entries(swedishMonths)) {
+                        if (dateString.toLowerCase().includes(month)) {
+                            const year = dateString.match(/20\d{2}/)?.[0] || new Date().getFullYear();
+                            const day = dateString.match(/\b(\d{1,2})\b/)?.[0]?.padStart(2, '0') || '01';
+                            return `${day} ${this.getSwedishMonthName(num)} ${year}`;
+                        }
+                    }
+                }
+                
+                // Standard datum format för PressReader
+                const day = date.getDate().toString().padStart(2, '0');
+                const month = (date.getMonth() + 1).toString().padStart(2, '0');
+                const year = date.getFullYear();
+                
+                return `${day} ${this.getSwedishMonthName(month)} ${year}`;
+            } catch (error) {
+                // Returnera dagens datum som fallback
+                const today = new Date();
+                const day = today.getDate().toString().padStart(2, '0');
+                const month = (today.getMonth() + 1).toString().padStart(2, '0');
+                const year = today.getFullYear();
+                return `${day} ${this.getSwedishMonthName(month)} ${year}`;
+            }
+        }
+
+        getSwedishMonthName(monthNumber) {
+            const months = {
+                '01': 'Jan', '02': 'Feb', '03': 'Mar', '04': 'Apr',
+                '05': 'Maj', '06': 'Jun', '07': 'Jul', '08': 'Aug',
+                '09': 'Sep', '10': 'Okt', '11': 'Nov', '12': 'Dec'
+            };
+            return months[monthNumber] || monthNumber;
         }
 
         extractKeywords(text) {

@@ -1,0 +1,24 @@
+{
+  "api_version": "v2",
+  "endpoints": {
+    "discovery": "/discovery/search",
+    "publications": "/publications",
+    "articles": "/articles",
+    "auth": "/auth/token"
+  },
+  "search_settings": {
+    "max_results": 20,
+    "timeout": 30,
+    "retry_attempts": 3
+  },
+  "swedish_publications": {
+    "svd": "Svenska Dagbladet",
+    "kungalvsposten": "Kungälvs-Posten",
+    "dn": "Dagens Nyheter"
+  },
+  "userscript_settings": {
+    "button_delay": 3000,
+    "search_delay": 500,
+    "max_search_strategies": 7
+  }
+}
