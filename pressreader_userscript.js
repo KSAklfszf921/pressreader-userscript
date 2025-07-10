@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name            Swedish News Article Unlocker
 // @namespace       https://github.com/quoid/userscripts
-// @version         2.0.0
-// @description     Advanced paywall detection with Boolean search strategies for PressReader integration
+// @version         3.0.0
+// @description     Production-ready paywall detection with real PressReader API integration and intelligent fallback
 // @author          Isak Skogstad
 // @match           *://www.svd.se/*
 // @match           *://svd.se/*
